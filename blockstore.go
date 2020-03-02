@@ -224,6 +224,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 				log.Warningf("error parsing key from binary: %s", err)
 				continue
 			}
+			//k := cid.NewCidV1(cid.Raw, bk)
 			k, err := cid.Cast(bk)
 			if err != nil {
 				log.Warningf("failed to cast cid: %s", err)
