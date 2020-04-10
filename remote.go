@@ -137,14 +137,13 @@ func (rbs *RemoteBlockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, e
 }
 
 func (rbs *RemoteBlockstore) HashOnRead(enabled bool) {
-	var req pb.BSREQTYPE
-	if enabled {
-		req = pb.BSREQTYPE_BS_HASH_ON_READ_ENABLE
-	} else {
-		req = pb.BSREQTYPE_BS_HASH_ON_READ_DISABLE
-	}
 	_, err := rbs.xclient.Blockstore(rbs.ctx, &pb.BlockstoreRequest{
-		RequestType: req,
+		RequestType: func() pb.BSREQTYPE {
+			if enabled {
+				return pb.BSREQTYPE_BS_HASH_ON_READ_ENABLE
+			}
+			return pb.BSREQTYPE_BS_HASH_ON_READ_DISABLE
+		}(),
 	})
 	if err != nil {
 		// TODO(bonedaddy): log
