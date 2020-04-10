@@ -2,7 +2,6 @@ package blockstore
 
 import (
 	"context"
-	"errors"
 
 	pb "github.com/RTradeLtd/TxPB/v3/go"
 	blocks "github.com/ipfs/go-block-format"
@@ -30,13 +29,26 @@ func (rbs *RemoteBlockstore) DeleteBlock(gocid cid.Cid) error {
 		RequestType: pb.BSREQTYPE_BS_DELETE,
 		Cids:        []string{gocid.String()},
 	})
-	if err != nil {
-		return err
-	}
+	return err
 }
 
 func (rbs *RemoteBlockstore) Has(gocid cid.Cid) (bool, error) {
-	return false, errors.New("not yet implemented")
+	resp, err := rbs.xclient.Blockstore(rbs.ctx, &pb.BlockstoreRequest{
+		RequestType: pb.BSREQTYPE_BS_HAS,
+		Cids:        []string{gocid.String()},
+	})
+	if err != nil {
+		return false, err
+	}
+	if len(resp.GetBlocks()) <= 0 {
+		return false, ErrNotFound
+	}
+	for _, block := range resp.GetBlocks() {
+		if block.Cid == gocid.String() {
+			return true, nil
+		}
+	}
+	return false, ErrNotFound
 }
 
 // Get is used to retrieve a block from our blockstore
@@ -125,5 +137,16 @@ func (rbs *RemoteBlockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, e
 }
 
 func (rbs *RemoteBlockstore) HashOnRead(enabled bool) {
-	// TODO(bonedaddy): not yet implemented
+	var req pb.BSREQTYPE
+	if enabled {
+		req = pb.BSREQTYPE_BS_HASH_ON_READ_ENABLE
+	} else {
+		req = pb.BSREQTYPE_BS_HASH_ON_READ_DISABLE
+	}
+	_, err := rbs.xclient.Blockstore(rbs.ctx, &pb.BlockstoreRequest{
+		RequestType: req,
+	})
+	if err != nil {
+		// TODO(bonedaddy): log
+	}
 }

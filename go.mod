@@ -1,6 +1,7 @@
 module github.com/ipfs/go-ipfs-blockstore
 
 require (
+	github.com/RTradeLtd/TxPB/v3 v3.2.3-0.20200403061323-e393bc5d3fa8
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/bbloom v0.0.4
 	github.com/ipfs/go-block-format v0.0.2
@@ -14,3 +15,5 @@ require (
 )
 
 go 1.13
+
+replace github.com/RTradeLtd/TxPB/v3 => ../TxPB
