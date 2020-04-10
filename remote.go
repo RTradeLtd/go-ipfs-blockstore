@@ -9,6 +9,10 @@ import (
 	cid "github.com/ipfs/go-cid"
 )
 
+var (
+	_ Blockstore = (*RemoteBlockstore)(nil)
+)
+
 // RemoteBlockstore storing blocks in remote locations
 // without running the blockstore locally.
 type RemoteBlockstore struct {
@@ -19,6 +23,16 @@ type RemoteBlockstore struct {
 // NewRemoteBlockstore returns a new remote blockstore
 func NewRemoteBlockstore(ctx context.Context, xclient pb.NodeAPIClient) *RemoteBlockstore {
 	return &RemoteBlockstore{ctx, xclient}
+}
+
+func (rbs *RemoteBlockstore) DeleteBlock(gocid cid.Cid) error {
+	_, err := rbs.xclient.Blockstore(rbs.ctx, &pb.BlockstoreRequest{
+		RequestType: pb.BSREQTYPE_BS_DELETE,
+		Cids:        []string{gocid.String()},
+	})
+	if err != nil {
+		return err
+	}
 }
 
 func (rbs *RemoteBlockstore) Has(gocid cid.Cid) (bool, error) {
@@ -35,9 +49,23 @@ func (rbs *RemoteBlockstore) Get(gocid cid.Cid) (blocks.Block, error) {
 		return nil, err
 	}
 	if len(resp.GetBlocks()) <= 0 {
-		return nil, errors.New("block not found")
+		return nil, ErrNotFound
 	}
 	return blocks.NewBlockWithCid(resp.GetBlocks()[0].GetData(), gocid)
+}
+
+func (rbs *RemoteBlockstore) GetSize(gocid cid.Cid) (int, error) {
+	resp, err := rbs.xclient.Blockstore(rbs.ctx, &pb.BlockstoreRequest{
+		RequestType: pb.BSREQTYPE_BS_GET_STATS,
+		Cids:        []string{gocid.String()},
+	})
+	if err != nil {
+		return 0, err
+	}
+	if len(resp.GetBlocks()) <= 0 {
+		return 0, ErrNotFound
+	}
+	return resp.GetBlocks()[0].Size(), nil
 }
 
 func (rbs *RemoteBlockstore) Put(block blocks.Block) error {
@@ -93,4 +121,8 @@ func (rbs *RemoteBlockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, e
 		}
 	}()
 	return keysChan, nil
+}
+
+func (rbs *RemoteBlockstore) HashOnRead(enabled bool) {
+	// TODO(bonedaddy): not yet implemented
 }
