@@ -101,6 +101,7 @@ func (rbs *RemoteBlockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, e
 
 	var keysChan = make(chan cid.Cid)
 	go func() {
+		defer close(keysChan)
 		for {
 			msg, err := stream.Recv()
 			if err != nil {
