@@ -1,4 +1,4 @@
-module github.com/RTradeLtd/go-ipfs-blockstore/v2
+module github.com/RTradeLtd/go-ipfs-blockstore/v3
 
 require (
 	github.com/hashicorp/golang-lru v0.5.4
