@@ -15,10 +15,9 @@ import (
 	dsq "github.com/ipfs/go-datastore/query"
 	ib "github.com/ipfs/go-ipfs-blockstore"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
-	logging "github.com/ipfs/go-log"
+	uatomic "go.uber.org/atomic"
+	"go.uber.org/zap"
 )
-
-var log = logging.Logger("blockstore")
 
 // BlockPrefix namespaces blockstore datastores
 var BlockPrefix = ds.NewKey("blocks")
@@ -55,28 +54,30 @@ type gcBlockstore struct {
 
 // NewBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
-func NewBlockstore(d ds.Batching) ib.Blockstore {
+func NewBlockstore(logger *zap.Logger, d ds.Batching) ib.Blockstore {
 	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
 	dsb = dd
 	return &blockstore{
 		datastore: dsb,
+		logger:    logger.Named("blockstore"),
+		rehash:    uatomic.NewBool(false),
 	}
 }
 
 type blockstore struct {
 	datastore ds.Batching
-
-	rehash bool
+	logger    *zap.Logger
+	rehash    *uatomic.Bool
 }
 
 func (bs *blockstore) HashOnRead(enabled bool) {
-	bs.rehash = enabled
+	bs.rehash.Store(enabled)
 }
 
 func (bs *blockstore) Get(k cid.Cid) (blocks.Block, error) {
 	if !k.Defined() {
-		log.Error("undefined cid in blockstore")
+		bs.logger.Error("undefined cid in blockstore")
 		return nil, ErrNotFound
 	}
 	bdata, err := bs.datastore.Get(dshelp.MultihashToDsKey(k.Hash()))
@@ -86,7 +87,7 @@ func (bs *blockstore) Get(k cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	if bs.rehash {
+	if bs.rehash.Load() {
 		rbcid, err := k.Prefix().Sum(bdata)
 		if err != nil {
 			return nil, err
@@ -174,20 +175,20 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 				return
 			}
 			if e.Error != nil {
-				log.Errorf("blockstore.AllKeysChan got err: %s", e.Error)
+				bs.logger.Error("AllKeysChan received error", zap.Error(err))
 				return
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
 			bk, err := dshelp.BinaryFromDsKey(ds.RawKey(e.Key))
 			if err != nil {
-				log.Warningf("error parsing key from binary: %s", err)
+				bs.logger.Warn("error parsing key from binary", zap.Error(err))
 				continue
 			}
 			//k := cid.NewCidV1(cid.Raw, bk)
 			k, err := cid.Cast(bk)
 			if err != nil {
-				log.Warningf("failed to cast cid: %s", err)
+				bs.logger.Warn("failed to cast cid", zap.Error(err))
 			}
 			select {
 			case <-ctx.Done():
