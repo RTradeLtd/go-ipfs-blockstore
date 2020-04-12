@@ -14,8 +14,8 @@ import (
 	dsns "github.com/ipfs/go-datastore/namespace"
 	dsq "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
-	"go.uber.org/zap"
 	uatomic "go.uber.org/atomic"
+	"go.uber.org/zap"
 )
 
 // BlockPrefix namespaces blockstore datastores
@@ -107,7 +107,7 @@ func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 
 type blockstore struct {
 	datastore ds.Batching
-	logger *zap.Logger
+	logger    *zap.Logger
 	rehash    *uatomic.Bool
 }
 
