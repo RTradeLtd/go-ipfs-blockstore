@@ -13,6 +13,7 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsns "github.com/ipfs/go-datastore/namespace"
 	dsq "github.com/ipfs/go-datastore/query"
+	ib "github.com/ipfs/go-ipfs-blockstore"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 	logging "github.com/ipfs/go-log"
 )
@@ -29,58 +30,17 @@ var ErrHashMismatch = errors.New("block in storage has different hash than reque
 // ErrNotFound is an error returned when a block is not found.
 var ErrNotFound = errors.New("blockstore: block not found")
 
-// Blockstore wraps a Datastore block-centered methods and provides a layer
-// of abstraction which allows to add different caching strategies.
-type Blockstore interface {
-	DeleteBlock(cid.Cid) error
-	Has(cid.Cid) (bool, error)
-	Get(cid.Cid) (blocks.Block, error)
+// Blockstore aliases upstream blockstore interface
+type Blockstore ib.Blockstore
 
-	// GetSize returns the CIDs mapped BlockSize
-	GetSize(cid.Cid) (int, error)
+// GCLocker aliases upstream gclocker interface
+type GCLocker ib.GCLocker
 
-	// Put puts a given block to the underlying datastore
-	Put(blocks.Block) error
+// GCBlockstore aliases upstream gcblockstore interface
+type GCBlockstore ib.GCBlockstore
 
-	// PutMany puts a slice of blocks at the same time using batching
-	// capabilities of the underlying datastore whenever possible.
-	PutMany([]blocks.Block) error
-
-	// AllKeysChan returns a channel from which
-	// the CIDs in the Blockstore can be read. It should respect
-	// the given context, closing the channel if it becomes Done.
-	AllKeysChan(ctx context.Context) (<-chan cid.Cid, error)
-
-	// HashOnRead specifies if every read block should be
-	// rehashed to make sure it matches its CID.
-	HashOnRead(enabled bool)
-}
-
-// GCLocker abstract functionality to lock a blockstore when performing
-// garbage-collection operations.
-type GCLocker interface {
-	// GCLock locks the blockstore for garbage collection. No operations
-	// that expect to finish with a pin should ocurr simultaneously.
-	// Reading during GC is safe, and requires no lock.
-	GCLock() Unlocker
-
-	// PinLock locks the blockstore for sequences of puts expected to finish
-	// with a pin (before GC). Multiple put->pin sequences can write through
-	// at the same time, but no GC should happen simulatenously.
-	// Reading during Pinning is safe, and requires no lock.
-	PinLock() Unlocker
-
-	// GcRequested returns true if GCLock has been called and is waiting to
-	// take the lock
-	GCRequested() bool
-}
-
-// GCBlockstore is a blockstore that can safely run garbage-collection
-// operations.
-type GCBlockstore interface {
-	Blockstore
-	GCLocker
-}
+// Unlocker aliases upstream unlocker interface
+type Unlocker ib.Unlocker
 
 // NewGCBlockstore returns a default implementation of GCBlockstore
 // using the given Blockstore and GCLocker.
@@ -95,7 +55,7 @@ type gcBlockstore struct {
 
 // NewBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
-func NewBlockstore(d ds.Batching) Blockstore {
+func NewBlockstore(d ds.Batching) ib.Blockstore {
 	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
 	dsb = dd
@@ -251,12 +211,6 @@ type gclocker struct {
 	gcreq int32
 }
 
-// Unlocker represents an object which can Unlock
-// something.
-type Unlocker interface {
-	Unlock()
-}
-
 type unlocker struct {
 	unlock func()
 }
@@ -266,14 +220,14 @@ func (u *unlocker) Unlock() {
 	u.unlock = nil // ensure its not called twice
 }
 
-func (bs *gclocker) GCLock() Unlocker {
+func (bs *gclocker) GCLock() ib.Unlocker {
 	atomic.AddInt32(&bs.gcreq, 1)
 	bs.lk.Lock()
 	atomic.AddInt32(&bs.gcreq, -1)
 	return &unlocker{bs.lk.Unlock}
 }
 
-func (bs *gclocker) PinLock() Unlocker {
+func (bs *gclocker) PinLock() ib.Unlocker {
 	bs.lk.RLock()
 	return &unlocker{bs.lk.RUnlock}
 }
