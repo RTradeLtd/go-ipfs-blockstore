@@ -8,12 +8,13 @@ import (
 	bloom "github.com/ipfs/bbloom"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
+	ib "github.com/ipfs/go-ipfs-blockstore"
 )
 
 // bloomCached returns a Blockstore that caches Has requests using a Bloom
 // filter. bloomSize is size of bloom filter in bytes. hashCount specifies the
 // number of hashing functions in the bloom filter (usually known as k).
-func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (*bloomcache, error) {
+func bloomCached(ctx context.Context, bs ib.Blockstore, bloomSize, hashCount int) (*bloomcache, error) {
 	bl, err := bloom.New(float64(bloomSize), float64(hashCount))
 	if err != nil {
 		return nil, err

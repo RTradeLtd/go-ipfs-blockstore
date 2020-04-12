@@ -43,13 +43,13 @@ type Unlocker ib.Unlocker
 
 // NewGCBlockstore returns a default implementation of GCBlockstore
 // using the given Blockstore and GCLocker.
-func NewGCBlockstore(bs Blockstore, gcl GCLocker) GCBlockstore {
+func NewGCBlockstore(bs ib.Blockstore, gcl ib.GCLocker) ib.GCBlockstore {
 	return gcBlockstore{bs, gcl}
 }
 
 type gcBlockstore struct {
-	Blockstore
-	GCLocker
+	ib.Blockstore
+	ib.GCLocker
 }
 
 // NewBlockstore returns a default Blockstore implementation
@@ -185,7 +185,12 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 				bs.logger.Warn("error parsing key from binary", zap.Error(err))
 				continue
 			}
-			//k := cid.NewCidV1(cid.Raw, bk)
+			// this is commented out from upstream
+			// unfortunately it seems like the assumption that
+			// this will work even for cidv0 objects is false
+			// as we have some tests which generate cidv0 objects
+			// that break this
+			// k := cid.NewCidV1(cid.Raw, bk)
 			k, err := cid.Cast(bk)
 			if err != nil {
 				bs.logger.Warn("failed to cast cid", zap.Error(err))
@@ -203,7 +208,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 
 // NewGCLocker returns a default implementation of
 // GCLocker using standard [RW] mutexes.
-func NewGCLocker() GCLocker {
+func NewGCLocker() ib.GCLocker {
 	return &gclocker{}
 }
 

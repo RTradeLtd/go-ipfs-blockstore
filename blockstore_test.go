@@ -11,6 +11,7 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsq "github.com/ipfs/go-datastore/query"
 	ds_sync "github.com/ipfs/go-datastore/sync"
+	ib "github.com/ipfs/go-ipfs-blockstore"
 	u "github.com/ipfs/go-ipfs-util"
 	"go.uber.org/zap/zaptest"
 )
@@ -164,7 +165,7 @@ func TestHashOnRead(t *testing.T) {
 	}
 }
 
-func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []cid.Cid) {
+func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (ib.Blockstore, []cid.Cid) {
 	if d == nil {
 		d = ds.NewMapDatastore()
 	}

@@ -6,6 +6,7 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
+	ib "github.com/ipfs/go-ipfs-blockstore"
 )
 
 type cacheHave bool
@@ -19,7 +20,7 @@ type arccache struct {
 	blockstore Blockstore
 }
 
-func newARCCachedBS(ctx context.Context, bs Blockstore, lruSize int) (*arccache, error) {
+func newARCCachedBS(ctx context.Context, bs ib.Blockstore, lruSize int) (*arccache, error) {
 	arc, err := lru.New2Q(lruSize)
 	if err != nil {
 		return nil, err

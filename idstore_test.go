@@ -7,11 +7,12 @@ import (
 	blk "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
+	ib "github.com/ipfs/go-ipfs-blockstore"
 	mh "github.com/multiformats/go-multihash"
 	"go.uber.org/zap/zaptest"
 )
 
-func createTestStores(t *testing.T) (Blockstore, *callbackDatastore) {
+func createTestStores(t *testing.T) (ib.Blockstore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	ids := NewIdStore(NewBlockstore(zaptest.NewLogger(t), cd))
 	return ids, cd

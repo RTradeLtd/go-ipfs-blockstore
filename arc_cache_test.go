@@ -8,12 +8,13 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
+	ib "github.com/ipfs/go-ipfs-blockstore"
 	"go.uber.org/zap/zaptest"
 )
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))
 
-func testArcCached(ctx context.Context, bs Blockstore) (*arccache, error) {
+func testArcCached(ctx context.Context, bs ib.Blockstore) (*arccache, error) {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -27,7 +28,7 @@ func testArcCached(ctx context.Context, bs Blockstore) (*arccache, error) {
 	return nil, err
 }
 
-func createStores(t *testing.T) (*arccache, Blockstore, *callbackDatastore) {
+func createStores(t *testing.T) (*arccache, ib.Blockstore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(zaptest.NewLogger(t), syncds.MutexWrap(cd))
 	arc, err := testArcCached(context.TODO(), bs)
