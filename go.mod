@@ -11,6 +11,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/prometheus/client_golang v1.5.1
 	go.uber.org/zap v1.14.1
+	go.uber.org/atomic v1.6.0
 )
 
 go 1.13

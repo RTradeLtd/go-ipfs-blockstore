@@ -15,6 +15,7 @@ import (
 	dsq "github.com/ipfs/go-datastore/query"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 	"go.uber.org/zap"
+	uatomic "go.uber.org/atomic"
 )
 
 // BlockPrefix namespaces blockstore datastores
@@ -100,19 +101,18 @@ func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 	return &blockstore{
 		datastore: dsb,
 		logger:    logger.Named("blockstore"),
+		rehash:    uatomic.NewBool(false),
 	}
 }
 
 type blockstore struct {
 	datastore ds.Batching
-
-	rehash bool
-
 	logger *zap.Logger
+	rehash    *uatomic.Bool
 }
 
 func (bs *blockstore) HashOnRead(enabled bool) {
-	bs.rehash = enabled
+	bs.rehash.Store(enabled)
 }
 
 func (bs *blockstore) Get(k cid.Cid) (blocks.Block, error) {
@@ -127,7 +127,7 @@ func (bs *blockstore) Get(k cid.Cid) (blocks.Block, error) {
 	if err != nil {
 		return nil, err
 	}
-	if bs.rehash {
+	if bs.rehash.Load() {
 		rbcid, err := k.Prefix().Sum(bdata)
 		if err != nil {
 			return nil, err
