@@ -12,10 +12,11 @@ import (
 	dsq "github.com/ipfs/go-datastore/query"
 	ds_sync "github.com/ipfs/go-datastore/sync"
 	u "github.com/ipfs/go-ipfs-util"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestGetWhenKeyNotPresent(t *testing.T) {
-	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	c := cid.NewCidV0(u.Hash([]byte("stuff")))
 	bl, err := bs.Get(c)
 
@@ -28,7 +29,7 @@ func TestGetWhenKeyNotPresent(t *testing.T) {
 }
 
 func TestGetWhenKeyIsNil(t *testing.T) {
-	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	_, err := bs.Get(cid.Cid{})
 	if err != ErrNotFound {
 		t.Fail()
@@ -36,7 +37,7 @@ func TestGetWhenKeyIsNil(t *testing.T) {
 }
 
 func TestPutThenGetBlock(t *testing.T) {
-	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
 
 	err := bs.Put(block)
@@ -54,7 +55,7 @@ func TestPutThenGetBlock(t *testing.T) {
 }
 
 func TestCidv0v1(t *testing.T) {
-	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
 
 	err := bs.Put(block)
@@ -72,7 +73,7 @@ func TestCidv0v1(t *testing.T) {
 }
 
 func TestPutThenGetSizeBlock(t *testing.T) {
-	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	block := blocks.NewBlock([]byte("some data"))
 	missingBlock := blocks.NewBlock([]byte("missingBlock"))
 	emptyBlock := blocks.NewBlock([]byte{})
@@ -123,7 +124,7 @@ func TestPutUsesHas(t *testing.T) {
 	ds := &countHasDS{
 		Datastore: ds.NewMapDatastore(),
 	}
-	bs := NewBlockstore(ds_sync.MutexWrap(ds))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds))
 	bl := blocks.NewBlock([]byte("some data"))
 	if err := bs.Put(bl); err != nil {
 		t.Fatal(err)
@@ -143,7 +144,7 @@ func TestHashOnRead(t *testing.T) {
 	})()
 	u.Debug = false
 
-	bs := NewBlockstore(ds_sync.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	bl := blocks.NewBlock([]byte("some data"))
 	blBad, err := blocks.NewBlockWithCid([]byte("some other data"), bl.Cid())
 	if err != nil {
@@ -167,7 +168,7 @@ func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []c
 	if d == nil {
 		d = ds.NewMapDatastore()
 	}
-	bs := NewBlockstore(ds_sync.MutexWrap(d))
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(d))
 
 	keys := make([]cid.Cid, N)
 	for i := 0; i < N; i++ {

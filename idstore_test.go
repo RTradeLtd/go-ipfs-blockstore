@@ -8,11 +8,12 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	mh "github.com/multiformats/go-multihash"
+	"go.uber.org/zap/zaptest"
 )
 
-func createTestStores() (Blockstore, *callbackDatastore) {
+func createTestStores(t *testing.T) (Blockstore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
-	ids := NewIdStore(NewBlockstore(cd))
+	ids := NewIdStore(NewBlockstore(zaptest.NewLogger(t), cd))
 	return ids, cd
 }
 
@@ -24,7 +25,7 @@ func TestIdStore(t *testing.T) {
 	emptyHash, _ := cid.NewPrefixV1(cid.Raw, mh.SHA2_256).Sum([]byte("emptyHash"))
 	emptyBlock, _ := blk.NewBlockWithCid([]byte{}, emptyHash)
 
-	ids, cb := createTestStores()
+	ids, cb := createTestStores(t)
 
 	have, _ := ids.Has(idhash1)
 	if !have {
