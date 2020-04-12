@@ -11,6 +11,7 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsq "github.com/ipfs/go-datastore/query"
 	syncds "github.com/ipfs/go-datastore/sync"
+	"go.uber.org/zap/zaptest"
 )
 
 func testBloomCached(ctx context.Context, bs Blockstore) (*bloomcache, error) {
@@ -27,7 +28,7 @@ func testBloomCached(ctx context.Context, bs Blockstore) (*bloomcache, error) {
 }
 
 func TestPutManyAddsToBloom(t *testing.T) {
-	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), syncds.MutexWrap(ds.NewMapDatastore()))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -84,7 +85,7 @@ func TestPutManyAddsToBloom(t *testing.T) {
 }
 
 func TestReturnsErrorWhenSizeNegative(t *testing.T) {
-	bs := NewBlockstore(syncds.MutexWrap(ds.NewMapDatastore()))
+	bs := NewBlockstore(zaptest.NewLogger(t), syncds.MutexWrap(ds.NewMapDatastore()))
 	_, err := bloomCached(context.Background(), bs, -1, 1)
 	if err == nil {
 		t.Fail()
@@ -92,7 +93,7 @@ func TestReturnsErrorWhenSizeNegative(t *testing.T) {
 }
 func TestHasIsBloomCached(t *testing.T) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
-	bs := NewBlockstore(syncds.MutexWrap(cd))
+	bs := NewBlockstore(zaptest.NewLogger(t), syncds.MutexWrap(cd))
 
 	for i := 0; i < 1000; i++ {
 		bs.Put(blocks.NewBlock([]byte(fmt.Sprintf("data: %d", i))))

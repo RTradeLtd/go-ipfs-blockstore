@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
-	"time"
 
 	bloom "github.com/ipfs/bbloom"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	metrics "github.com/ipfs/go-metrics-interface"
 )
 
 // bloomCached returns a Blockstore that caches Has requests using a Bloom
@@ -23,23 +21,18 @@ func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (
 	bc := &bloomcache{
 		blockstore: bs,
 		bloom:      bl,
-		hits: metrics.NewCtx(ctx, "bloom.hits_total",
-			"Number of cache hits in bloom cache").Counter(),
-		total: metrics.NewCtx(ctx, "bloom_total",
-			"Total number of requests to bloom cache").Counter(),
-		buildChan: make(chan struct{}),
+		buildChan:  make(chan struct{}),
 	}
 	go func() {
 		err := bc.build(ctx)
 		if err != nil {
 			select {
 			case <-ctx.Done():
-				log.Warning("Cache rebuild closed by context finishing: ", err)
 			default:
-				log.Error(err)
 			}
 			return
 		}
+		/* TODO(bonedaddy): decide if we want to enable
 		if metrics.Active() {
 			fill := metrics.NewCtx(ctx, "bloom_fill_ratio",
 				"Ratio of bloom filter fullnes, (updated once a minute)").Gauge()
@@ -54,7 +47,7 @@ func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (
 					fill.Set(bc.bloom.FillRatioTS())
 				}
 			}
-		}
+		}*/
 	}()
 	return bc, nil
 }
@@ -67,10 +60,6 @@ type bloomcache struct {
 
 	buildChan  chan struct{}
 	blockstore Blockstore
-
-	// Statistics
-	hits  metrics.Counter
-	total metrics.Counter
 }
 
 func (b *bloomcache) BloomActive() bool {
@@ -87,8 +76,6 @@ func (b *bloomcache) Wait(ctx context.Context) error {
 }
 
 func (b *bloomcache) build(ctx context.Context) error {
-	evt := log.EventBegin(ctx, "bloomcache.build")
-	defer evt.Done()
 	defer close(b.buildChan)
 
 	ch, err := b.blockstore.AllKeysChan(ctx)
@@ -122,9 +109,10 @@ func (b *bloomcache) DeleteBlock(k cid.Cid) error {
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
 func (b *bloomcache) hasCached(k cid.Cid) (has bool, ok bool) {
-	b.total.Inc()
+	bloomCacheRequests.Inc()
 	if !k.Defined() {
-		log.Error("undefined in bloom cache")
+		// TODO(Bonedaddy): re-enable this log at some point
+		// log.Error("undefined in bloom cache")
 		// Return cache invalid so call to blockstore
 		// in case of invalid key is forwarded deeper
 		return false, false
@@ -132,7 +120,7 @@ func (b *bloomcache) hasCached(k cid.Cid) (has bool, ok bool) {
 	if b.BloomActive() {
 		blr := b.bloom.HasTS(k.Hash())
 		if !blr { // not contained in bloom is only conclusive answer bloom gives
-			b.hits.Inc()
+			bloomCacheHits.Inc()
 			return false, true
 		}
 	}

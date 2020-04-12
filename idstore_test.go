@@ -8,23 +8,24 @@ import (
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	mh "github.com/multiformats/go-multihash"
+	"go.uber.org/zap/zaptest"
 )
 
-func createTestStores() (Blockstore, *callbackDatastore) {
+func createTestStores(t *testing.T) (Blockstore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
-	ids := NewIdStore(NewBlockstore(cd))
+	ids := NewIdStore(NewBlockstore(zaptest.NewLogger(t), cd))
 	return ids, cd
 }
 
 func TestIdStore(t *testing.T) {
-	idhash1, _ := cid.NewPrefixV1(cid.Raw, mh.ID).Sum([]byte("idhash1"))
+	idhash1, _ := cid.NewPrefixV1(cid.Raw, mh.IDENTITY).Sum([]byte("idhash1"))
 	idblock1, _ := blk.NewBlockWithCid([]byte("idhash1"), idhash1)
 	hash1, _ := cid.NewPrefixV1(cid.Raw, mh.SHA2_256).Sum([]byte("hash1"))
 	block1, _ := blk.NewBlockWithCid([]byte("hash1"), hash1)
 	emptyHash, _ := cid.NewPrefixV1(cid.Raw, mh.SHA2_256).Sum([]byte("emptyHash"))
 	emptyBlock, _ := blk.NewBlockWithCid([]byte{}, emptyHash)
 
-	ids, cb := createTestStores()
+	ids, cb := createTestStores(t)
 
 	have, _ := ids.Has(idhash1)
 	if !have {
@@ -110,7 +111,7 @@ func TestIdStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	idhash2, _ := cid.NewPrefixV1(cid.Raw, mh.ID).Sum([]byte("idhash2"))
+	idhash2, _ := cid.NewPrefixV1(cid.Raw, mh.IDENTITY).Sum([]byte("idhash2"))
 	idblock2, _ := blk.NewBlockWithCid([]byte("idhash2"), idhash2)
 	hash2, _ := cid.NewPrefixV1(cid.Raw, mh.SHA2_256).Sum([]byte("hash2"))
 	block2, _ := blk.NewBlockWithCid([]byte("hash2"), hash2)
@@ -146,10 +147,13 @@ func TestIdStore(t *testing.T) {
 	}
 
 	ch, err := ids.AllKeysChan(context.TODO())
+	if err != nil {
+		t.Fatal(err)
+	}
 	cnt := 0
 	for c := range ch {
 		cnt++
-		if c.Prefix().MhType == mh.ID {
+		if c.Prefix().MhType == mh.IDENTITY {
 			t.Fatalf("block with identity hash found in blockstore")
 		}
 	}
