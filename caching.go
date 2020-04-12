@@ -3,8 +3,6 @@ package blockstore
 import (
 	"context"
 	"errors"
-
-	metrics "github.com/ipfs/go-metrics-interface"
 )
 
 // CacheOpts wraps options for CachedBlockStore().
@@ -40,8 +38,6 @@ func CachedBlockstore(
 	if opts.HasBloomFilterSize != 0 && opts.HasBloomFilterHashes == 0 {
 		return nil, errors.New("bloom filter hash count can't be 0 when there is size set")
 	}
-
-	ctx = metrics.CtxSubScope(ctx, "bs.cache")
 
 	if opts.HasARCCacheSize > 0 {
 		cbs, err = newARCCachedBS(ctx, cbs, opts.HasARCCacheSize)

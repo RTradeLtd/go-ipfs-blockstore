@@ -6,7 +6,6 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	metrics "github.com/ipfs/go-metrics-interface"
 )
 
 type cacheHave bool
@@ -18,9 +17,6 @@ type cacheSize int
 type arccache struct {
 	arc        *lru.TwoQueueCache
 	blockstore Blockstore
-
-	hits  metrics.Counter
-	total metrics.Counter
 }
 
 func newARCCachedBS(ctx context.Context, bs Blockstore, lruSize int) (*arccache, error) {
@@ -29,9 +25,6 @@ func newARCCachedBS(ctx context.Context, bs Blockstore, lruSize int) (*arccache,
 		return nil, err
 	}
 	c := &arccache{arc: arc, blockstore: bs}
-	c.hits = metrics.NewCtx(ctx, "arc.hits_total", "Number of ARC cache hits").Counter()
-	c.total = metrics.NewCtx(ctx, "arc_total", "Total number of ARC cache requests").Counter()
-
 	return c, nil
 }
 
@@ -51,7 +44,7 @@ func (b *arccache) DeleteBlock(k cid.Cid) error {
 // if ok == false has is inconclusive
 // if ok == true then has respons to question: is it contained
 func (b *arccache) hasCached(k cid.Cid) (has bool, size int, ok bool) {
-	b.total.Inc()
+	arcCacheRequests.Inc()
 	if !k.Defined() {
 		log.Error("undefined cid in arccache")
 		// Return cache invalid so the call to blockstore happens
@@ -61,7 +54,7 @@ func (b *arccache) hasCached(k cid.Cid) (has bool, size int, ok bool) {
 
 	h, ok := b.arc.Get(string(k.Hash()))
 	if ok {
-		b.hits.Inc()
+		arcCacheHits.Inc()
 		switch h := h.(type) {
 		case cacheHave:
 			return bool(h), -1, true
