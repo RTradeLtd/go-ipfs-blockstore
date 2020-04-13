@@ -15,7 +15,8 @@ var (
 )
 
 // RemoteBlockstore storing blocks in remote locations
-// without running the blockstore locally.
+// without running the blockstore locally. If behind latency
+// sensitive networks, it is advisable to wrap this in a cached blockstore
 type RemoteBlockstore struct {
 	ctx     context.Context
 	xclient pb.NodeAPIClient
