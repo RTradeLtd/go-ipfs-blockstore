@@ -9,6 +9,7 @@ import (
 
 	sdkc "github.com/RTradeLtd/go-temporalx-sdk/client"
 	blocks "github.com/ipfs/go-block-format"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestRemoteBlockstore(t *testing.T) {
@@ -23,7 +24,7 @@ func TestRemoteBlockstore(t *testing.T) {
 		t.Fatal(err)
 	}
 	blk := blocks.NewBlock([]byte("hello world"))
-	blockstore := NewRemoteBlockstore(ctx, client.NodeAPIClient)
+	blockstore := NewRemoteBlockstore(ctx, zaptest.NewLogger(t), client.NodeAPIClient)
 	t.Run("DeleteBlock", func(t *testing.T) {
 		blockstore.DeleteBlock(blk.Cid())
 	})
