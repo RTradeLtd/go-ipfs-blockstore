@@ -5,16 +5,15 @@ import (
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
-	ib "github.com/ipfs/go-ipfs-blockstore"
 	mh "github.com/multiformats/go-multihash"
 )
 
 // idstore wraps a BlockStore to add support for identity hashes
 type idstore struct {
-	bs ib.Blockstore
+	bs Blockstore
 }
 
-func NewIdStore(bs ib.Blockstore) ib.Blockstore {
+func NewIdStore(bs Blockstore) Blockstore {
 	return &idstore{bs}
 }
 

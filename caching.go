@@ -3,8 +3,6 @@ package blockstore
 import (
 	"context"
 	"errors"
-
-	ib "github.com/ipfs/go-ipfs-blockstore"
 )
 
 // CacheOpts wraps options for CachedBlockStore().
@@ -28,8 +26,8 @@ func DefaultCacheOpts() CacheOpts {
 // then in a bloom filter cache, if the options indicate it.
 func CachedBlockstore(
 	ctx context.Context,
-	bs ib.Blockstore,
-	opts CacheOpts) (cbs ib.Blockstore, err error) {
+	bs Blockstore,
+	opts CacheOpts) (cbs Blockstore, err error) {
 	cbs = bs
 
 	if opts.HasBloomFilterSize < 0 || opts.HasBloomFilterHashes < 0 ||

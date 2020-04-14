@@ -43,7 +43,7 @@ type Unlocker ib.Unlocker
 
 // NewGCBlockstore returns a default implementation of GCBlockstore
 // using the given Blockstore and GCLocker.
-func NewGCBlockstore(bs ib.Blockstore, gcl ib.GCLocker) ib.GCBlockstore {
+func NewGCBlockstore(bs Blockstore, gcl GCLocker) GCBlockstore {
 	return gcBlockstore{bs, gcl}
 }
 
@@ -54,7 +54,7 @@ type gcBlockstore struct {
 
 // NewBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
-func NewBlockstore(logger *zap.Logger, d ds.Batching) ib.Blockstore {
+func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
 	dsb = dd
@@ -208,7 +208,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 
 // NewGCLocker returns a default implementation of
 // GCLocker using standard [RW] mutexes.
-func NewGCLocker() ib.GCLocker {
+func NewGCLocker() GCLocker {
 	return &gclocker{}
 }
 
