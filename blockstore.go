@@ -30,16 +30,16 @@ var ErrHashMismatch = errors.New("block in storage has different hash than reque
 var ErrNotFound = errors.New("blockstore: block not found")
 
 // Blockstore aliases upstream blockstore interface
-type Blockstore ib.Blockstore
+type Blockstore = ib.Blockstore
 
 // GCLocker aliases upstream gclocker interface
-type GCLocker ib.GCLocker
+type GCLocker = ib.GCLocker
 
 // GCBlockstore aliases upstream gcblockstore interface
-type GCBlockstore ib.GCBlockstore
+type GCBlockstore = ib.GCBlockstore
 
 // Unlocker aliases upstream unlocker interface
-type Unlocker ib.Unlocker
+type Unlocker = ib.Unlocker
 
 // NewGCBlockstore returns a default implementation of GCBlockstore
 // using the given Blockstore and GCLocker.
@@ -48,8 +48,8 @@ func NewGCBlockstore(bs Blockstore, gcl GCLocker) GCBlockstore {
 }
 
 type gcBlockstore struct {
-	ib.Blockstore
-	ib.GCLocker
+	Blockstore
+	GCLocker
 }
 
 // NewBlockstore returns a default Blockstore implementation
@@ -226,14 +226,14 @@ func (u *unlocker) Unlock() {
 	u.unlock = nil // ensure its not called twice
 }
 
-func (bs *gclocker) GCLock() ib.Unlocker {
+func (bs *gclocker) GCLock() Unlocker {
 	atomic.AddInt32(&bs.gcreq, 1)
 	bs.lk.Lock()
 	atomic.AddInt32(&bs.gcreq, -1)
 	return &unlocker{bs.lk.Unlock}
 }
 
-func (bs *gclocker) PinLock() ib.Unlocker {
+func (bs *gclocker) PinLock() Unlocker {
 	bs.lk.RLock()
 	return &unlocker{bs.lk.RUnlock}
 }

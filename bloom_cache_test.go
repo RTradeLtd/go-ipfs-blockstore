@@ -11,11 +11,10 @@ import (
 	ds "github.com/ipfs/go-datastore"
 	dsq "github.com/ipfs/go-datastore/query"
 	syncds "github.com/ipfs/go-datastore/sync"
-	ib "github.com/ipfs/go-ipfs-blockstore"
 	"go.uber.org/zap/zaptest"
 )
 
-func testBloomCached(ctx context.Context, bs ib.Blockstore) (*bloomcache, error) {
+func testBloomCached(ctx context.Context, bs Blockstore) (*bloomcache, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
