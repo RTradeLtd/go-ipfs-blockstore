@@ -2,6 +2,8 @@ package blockstore
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"os"
 	"reflect"
 	"testing"
@@ -36,8 +38,18 @@ func TestRemoteBlockstore(t *testing.T) {
 		if has {
 			t.Fatal("should not have block")
 		}
+		if err := blockstore.Put(blk); err != nil {
+			t.Fatal(err)
+		}
+		has, err = blockstore.Has(blk.Cid())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !has {
+			t.Fatal("should not have block")
+		}
 	})
-	t.Run("Put/Get", func(t *testing.T) {
+	t.Run("Put/Get/PutMany", func(t *testing.T) {
 		if err := blockstore.Put(blk); err != nil {
 			t.Fatal(err)
 		}
@@ -48,11 +60,36 @@ func TestRemoteBlockstore(t *testing.T) {
 		if !reflect.DeepEqual(blk, retBlk) {
 			t.Fatal("bad block retrieved")
 		}
+		_, err = blockstore.Get(
+			blocks.NewBlock(
+				[]byte(
+					fmt.Sprintf(
+						"%v-thisissometestdata-%s",
+						rand.Int63n(10000),
+						time.Now().String(),
+					),
+				),
+			).Cid(),
+		)
+		if err == nil {
+			t.Fatal("error expected")
+		}
+		if err := blockstore.PutMany(
+			[]blocks.Block{
+				blk,
+				blocks.NewBlock([]byte("hello world")),
+			},
+		); err != nil {
+			t.Fatal(err)
+		}
 	})
 	t.Run("GetSize", func(t *testing.T) {
-		_, err := blockstore.GetSize(blk.Cid())
+		sz, err := blockstore.GetSize(blk.Cid())
 		if err != nil {
 			t.Fatal(err)
+		}
+		if sz != 50 {
+			t.Fatal("bad size returned")
 		}
 	})
 	t.Run("AllKeysChan", func(t *testing.T) {

@@ -36,6 +36,9 @@ func (rbs *RemoteBlockstore) DeleteBlock(gocid cid.Cid) error {
 		ReqOpts:     []pb.BSREQOPTS{pb.BSREQOPTS_BS_FORCE},
 		Cids:        []string{gocid.String()},
 	})
+	if err != nil {
+		rbs.logger.Error("delete block failed", zap.Error(err), zap.String("cid", gocid.String()))
+	}
 	return err
 }
 
@@ -46,6 +49,7 @@ func (rbs *RemoteBlockstore) Has(gocid cid.Cid) (bool, error) {
 		Cids:        []string{gocid.String()},
 	})
 	if err != nil {
+		rbs.logger.Error("has check failed", zap.Error(err), zap.String("cid", gocid.String()))
 		return false, err
 	}
 	if len(resp.GetBlocks()) <= 0 {
@@ -66,6 +70,7 @@ func (rbs *RemoteBlockstore) Get(gocid cid.Cid) (blocks.Block, error) {
 		Cids:        []string{gocid.String()},
 	})
 	if err != nil {
+		rbs.logger.Error("get failed", zap.Error(err), zap.String("cid", gocid.String()))
 		return nil, err
 	}
 	if len(resp.GetBlocks()) <= 0 {
@@ -81,6 +86,7 @@ func (rbs *RemoteBlockstore) GetSize(gocid cid.Cid) (int, error) {
 		Cids:        []string{gocid.String()},
 	})
 	if err != nil {
+		rbs.logger.Error("get size failed", zap.Error(err), zap.String("cid", gocid.String()))
 		return 0, err
 	}
 	if len(resp.GetBlocks()) <= 0 {
@@ -95,26 +101,29 @@ func (rbs *RemoteBlockstore) Put(block blocks.Block) error {
 		RequestType: pb.BSREQTYPE_BS_PUT,
 		Data:        [][]byte{block.RawData()},
 	})
+	if err != nil {
+		rbs.logger.Error("put failed", zap.Error(err))
+	}
 	return err
 }
 
 // PutMany allows putting many blocks into the remote blockstore
 func (rbs *RemoteBlockstore) PutMany(blocks []blocks.Block) error {
-	var dataSlice = make([][]byte, len(blocks))
-	for i, block := range blocks {
-		dataSlice[i] = block.RawData()
+	// to prevent issues with gRPC max message size, send 1 by 1
+	for _, block := range blocks {
+		if err := rbs.Put(block); err != nil {
+			// done log as put handles the log
+			return err
+		}
 	}
-	_, err := rbs.xclient.Blockstore(rbs.ctx, &pb.BlockstoreRequest{
-		RequestType: pb.BSREQTYPE_BS_PUT,
-		Data:        dataSlice,
-	})
-	return err
+	return nil
 }
 
 // AllKeysChan is used to return all keys from the remote blockstore
 func (rbs *RemoteBlockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	stream, err := rbs.xclient.BlockstoreStream(ctx)
 	if err != nil {
+		rbs.logger.Error("allkeyschan failed", zap.Error(err))
 		return nil, err
 	}
 	if err := stream.Send(&pb.BlockstoreRequest{
