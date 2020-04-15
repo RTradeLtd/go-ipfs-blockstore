@@ -29,7 +29,6 @@ func TestRemoteBlockstore(t *testing.T) {
 		blockstore.DeleteBlock(blk.Cid())
 	})
 	t.Run("Has", func(t *testing.T) {
-		t.Skip("not available in public not yet")
 		has, err := blockstore.Has(blk.Cid())
 		if err != nil && err != ErrNotFound {
 			t.Error(err)
@@ -68,7 +67,6 @@ func TestRemoteBlockstore(t *testing.T) {
 		}
 	})
 	t.Run("HashOnRead", func(t *testing.T) {
-		t.Skip("not available in public yet")
 		blockstore.HashOnRead(true)
 		blockstore.HashOnRead(false)
 	})
