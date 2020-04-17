@@ -5,8 +5,6 @@ package blockstore
 import (
 	"context"
 	"errors"
-	"sync"
-	"sync/atomic"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -40,17 +38,6 @@ type GCBlockstore = ib.GCBlockstore
 
 // Unlocker aliases upstream unlocker interface
 type Unlocker = ib.Unlocker
-
-// NewGCBlockstore returns a default implementation of GCBlockstore
-// using the given Blockstore and GCLocker.
-func NewGCBlockstore(bs Blockstore, gcl GCLocker) GCBlockstore {
-	return gcBlockstore{bs, gcl}
-}
-
-type gcBlockstore struct {
-	Blockstore
-	GCLocker
-}
 
 // NewBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
@@ -204,40 +191,4 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	}()
 
 	return output, nil
-}
-
-// NewGCLocker returns a default implementation of
-// GCLocker using standard [RW] mutexes.
-func NewGCLocker() GCLocker {
-	return &gclocker{}
-}
-
-type gclocker struct {
-	lk    sync.RWMutex
-	gcreq int32
-}
-
-type unlocker struct {
-	unlock func()
-}
-
-func (u *unlocker) Unlock() {
-	u.unlock()
-	u.unlock = nil // ensure its not called twice
-}
-
-func (bs *gclocker) GCLock() Unlocker {
-	atomic.AddInt32(&bs.gcreq, 1)
-	bs.lk.Lock()
-	atomic.AddInt32(&bs.gcreq, -1)
-	return &unlocker{bs.lk.Unlock}
-}
-
-func (bs *gclocker) PinLock() Unlocker {
-	bs.lk.RLock()
-	return &unlocker{bs.lk.RUnlock}
-}
-
-func (bs *gclocker) GCRequested() bool {
-	return atomic.LoadInt32(&bs.gcreq) > 0
 }
