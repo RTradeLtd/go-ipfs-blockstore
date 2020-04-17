@@ -2,7 +2,7 @@ language: go
 
 go:
   - 1.14.x
-    
+
 install:
 - go get honnef.co/go/tools/cmd/staticcheck
 - go get -u go.bobheadxi.dev/gobenchdata
