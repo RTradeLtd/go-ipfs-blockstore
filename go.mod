@@ -1,7 +1,7 @@
 module github.com/RTradeLtd/go-ipfs-blockstore/v2
 
 require (
-	github.com/RTradeLtd/TxPB/v3 v3.2.4-0.20200419231638-fa330ca5cdff
+	github.com/RTradeLtd/TxPB/v3 v3.2.4-0.20200419235109-59639e2813da
 	github.com/RTradeLtd/go-temporalx-sdk v1.1.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/bbloom v0.0.4

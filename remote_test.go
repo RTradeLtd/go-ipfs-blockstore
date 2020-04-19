@@ -20,7 +20,7 @@ func TestRemoteBlockstore(t *testing.T) {
 	defer cancel()
 	client, err := sdkc.NewClient(
 		sdkc.Opts{
-			Insecure:      !xtestutils.GetXAPISecure(t),
+			Insecure:      xtestutils.GetXAPIInsecure(t),
 			ListenAddress: xtestutils.GetXAPIAddress(t),
 		},
 	)
