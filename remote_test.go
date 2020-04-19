@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 
+	xtestutils "github.com/RTradeLtd/TxPB/v3/go/testutils"
 	sdkc "github.com/RTradeLtd/go-temporalx-sdk/client"
 	blocks "github.com/ipfs/go-block-format"
 	"go.uber.org/zap/zaptest"
@@ -17,11 +17,12 @@ import (
 func TestRemoteBlockstore(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	addr := os.Getenv("TEST_XAPI")
-	if addr == "" {
-		addr = "xapi.temporal.cloud:9090"
-	}
-	client, err := sdkc.NewClient(sdkc.Opts{Insecure: true, ListenAddress: addr})
+	client, err := sdkc.NewClient(
+		sdkc.Opts{
+			Insecure:      xtestutils.GetXAPISecure(t),
+			ListenAddress: xtestutils.GetXAPIAddress(t),
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
