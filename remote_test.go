@@ -3,6 +3,7 @@ package blockstore
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -26,14 +27,16 @@ func TestRemoteBlockstore(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	blk := blocks.NewBlock([]byte("hello world"))
+	blk := blocks.NewBlock(getBlockContents(t, 1))
 	blockstore := NewRemoteBlockstore(ctx, zaptest.NewLogger(t), client.NodeAPIClient)
 	t.Run("DeleteBlock", func(t *testing.T) {
-		blockstore.DeleteBlock(blk.Cid())
+		if err := blockstore.DeleteBlock(blk.Cid()); err != nil {
+			t.Fatal(err)
+		}
 	})
 	t.Run("Has", func(t *testing.T) {
 		has, err := blockstore.Has(blk.Cid())
-		if err != nil && err != ErrNotFound {
+		if err != ErrNotFound {
 			t.Error(err)
 		}
 		if has {
@@ -47,7 +50,7 @@ func TestRemoteBlockstore(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !has {
-			t.Fatal("should not have block")
+			t.Fatal("should have block")
 		}
 	})
 	t.Run("Put/Get/PutMany", func(t *testing.T) {
@@ -62,15 +65,7 @@ func TestRemoteBlockstore(t *testing.T) {
 			t.Fatal("bad block retrieved")
 		}
 		_, err = blockstore.Get(
-			blocks.NewBlock(
-				[]byte(
-					fmt.Sprintf(
-						"%v-thisissometestdata-%s",
-						rand.Int63n(10000),
-						time.Now().String(),
-					),
-				),
-			).Cid(),
+			blocks.NewBlock(getBlockContents(t, 2)).Cid(),
 		)
 		if err == nil {
 			t.Fatal("error expected")
@@ -78,9 +73,13 @@ func TestRemoteBlockstore(t *testing.T) {
 		if err := blockstore.PutMany(
 			[]blocks.Block{
 				blk,
-				blocks.NewBlock([]byte("hello world")),
+				blocks.NewBlock(getBlockContents(t, 3)),
 			},
 		); err != nil {
+			t.Fatal(err)
+		}
+		// test 0 block put
+		if err := blockstore.PutMany(nil); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -106,6 +105,25 @@ func TestRemoteBlockstore(t *testing.T) {
 	})
 	t.Run("HashOnRead", func(t *testing.T) {
 		blockstore.HashOnRead(true)
+		if _, err := blockstore.Get(blk.Cid()); err != nil {
+			t.Fatal(err)
+		}
 		blockstore.HashOnRead(false)
+		if _, err := blockstore.Get(blk.Cid()); err != nil {
+			t.Fatal(err)
+		}
 	})
+}
+
+func getBlockContents(t *testing.T, count int) []byte {
+	t.Helper()
+	return []byte(
+		fmt.Sprintf(
+			"%s-go-ipfs-blockstore_remote-%v-%v-%v",
+			time.Now().String(),
+			rand.Int63n(math.MaxInt64),
+			time.Now().UnixNano(),
+			count,
+		),
+	)
 }

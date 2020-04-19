@@ -49,11 +49,7 @@ func (rbs *RemoteBlockstore) Has(gocid cid.Cid) (bool, error) {
 		Cids:        []string{gocid.String()},
 	})
 	if err != nil {
-		rbs.logger.Error("has check failed", zap.Error(err), zap.String("cid", gocid.String()))
 		return false, err
-	}
-	if len(resp.GetBlocks()) <= 0 {
-		return false, ErrNotFound
 	}
 	for _, block := range resp.GetBlocks() {
 		if block.Cid == gocid.String() {
@@ -69,12 +65,9 @@ func (rbs *RemoteBlockstore) Get(gocid cid.Cid) (blocks.Block, error) {
 		RequestType: pb.BSREQTYPE_BS_GET,
 		Cids:        []string{gocid.String()},
 	})
-	if err != nil {
+	if er := rbs.blockNotFound(resp, err); er != nil {
 		rbs.logger.Error("get failed", zap.Error(err), zap.String("cid", gocid.String()))
-		return nil, err
-	}
-	if len(resp.GetBlocks()) <= 0 {
-		return nil, ErrNotFound
+		return nil, er
 	}
 	return blocks.NewBlockWithCid(resp.GetBlocks()[0].GetData(), gocid)
 }
@@ -85,12 +78,9 @@ func (rbs *RemoteBlockstore) GetSize(gocid cid.Cid) (int, error) {
 		RequestType: pb.BSREQTYPE_BS_GET_STATS,
 		Cids:        []string{gocid.String()},
 	})
-	if err != nil {
+	if er := rbs.blockNotFound(resp, err); er != nil {
 		rbs.logger.Error("get size failed", zap.Error(err), zap.String("cid", gocid.String()))
-		return 0, err
-	}
-	if len(resp.GetBlocks()) <= 0 {
-		return 0, ErrNotFound
+		return 0, er
 	}
 	return resp.GetBlocks()[0].Size(), nil
 }
@@ -180,4 +170,16 @@ func (rbs *RemoteBlockstore) HashOnRead(enabled bool) {
 	if err != nil {
 		rbs.logger.Error("failed to set hash on read", zap.Error(err))
 	}
+}
+
+// blockNotFound is a helper function used to check a response, and the request error
+// to see if a block was not found, and return the appropriate block not found error
+func (rbs *RemoteBlockstore) blockNotFound(resp *pb.BlockstoreResponse, respErr error) error {
+	if respErr != nil {
+		return respErr
+	}
+	if len(resp.GetBlocks()) <= 0 {
+		return ErrNotFound
+	}
+	return nil
 }
