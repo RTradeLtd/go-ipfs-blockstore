@@ -1,53 +1,29 @@
-// Package blockstore implements a thin wrapper over a datastore, giving a
-// clean interface for Getting and Putting block objects.
 package blockstore
 
 import (
 	"context"
-	"errors"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
 	ds "github.com/ipfs/go-datastore"
 	dsns "github.com/ipfs/go-datastore/namespace"
 	dsq "github.com/ipfs/go-datastore/query"
-	ib "github.com/ipfs/go-ipfs-blockstore"
 	dshelp "github.com/ipfs/go-ipfs-ds-help"
 	uatomic "go.uber.org/atomic"
 	"go.uber.org/zap"
 )
 
-// BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ds.NewKey("blocks")
-
-// ErrHashMismatch is an error returned when the hash of a block
-// is different than expected.
-var ErrHashMismatch = errors.New("block in storage has different hash than requested")
-
-// ErrNotFound is an error returned when a block is not found.
-var ErrNotFound = errors.New("blockstore: block not found")
-
-// Blockstore aliases upstream blockstore interface
-type Blockstore = ib.Blockstore
-
-// GCLocker aliases upstream gclocker interface
-type GCLocker = ib.GCLocker
-
-// GCBlockstore aliases upstream gcblockstore interface
-type GCBlockstore = ib.GCBlockstore
-
-// Unlocker aliases upstream unlocker interface
-type Unlocker = ib.Unlocker
-
-type blockstore struct {
+// ExperimentalBlockstore is an experiment for
+// a faster blockstore
+type ExperimentalBlockstore struct {
 	datastore ds.Batching
 	logger    *zap.Logger
 	rehash    *uatomic.Bool
 }
 
-// NewBlockstore returns a default Blockstore implementation
+// NewExperimentalBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
-func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
+func NewExperimentalBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 	return &blockstore{
 		datastore: dsns.Wrap(d, BlockPrefix),
 		logger:    logger.Named("blockstore"),
@@ -55,11 +31,13 @@ func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 	}
 }
 
-func (bs *blockstore) HashOnRead(enabled bool) {
+// HashOnRead toggles hash verification of blocks on read
+func (bs *ExperimentalBlockstore) HashOnRead(enabled bool) {
 	bs.rehash.Store(enabled)
 }
 
-func (bs *blockstore) Get(k cid.Cid) (blocks.Block, error) {
+// Get returns a blocks from the blockstore
+func (bs *ExperimentalBlockstore) Get(k cid.Cid) (blocks.Block, error) {
 	if !k.Defined() {
 		bs.logger.Error("undefined cid in blockstore")
 		return nil, ErrNotFound
@@ -86,42 +64,38 @@ func (bs *blockstore) Get(k cid.Cid) (blocks.Block, error) {
 	return blocks.NewBlockWithCid(bdata, k)
 }
 
-func (bs *blockstore) Put(block blocks.Block) error {
-	k := dshelp.MultihashToDsKey(block.Cid().Hash())
-
-	// Has is cheaper than Put, so see if we already have it
-	exists, err := bs.datastore.Has(k)
-	if err == nil && exists {
-		return nil // already stored.
-	}
-	return bs.datastore.Put(k, block.RawData())
+// Put inserts a block into the blockstore
+func (bs *ExperimentalBlockstore) Put(block blocks.Block) error {
+	return bs.datastore.Put(
+		dshelp.MultihashToDsKey(block.Cid().Hash()),
+		block.RawData(),
+	)
 }
 
-func (bs *blockstore) PutMany(blocks []blocks.Block) error {
+// PutMany is used to put multiple blocks into the blockstore
+func (bs *ExperimentalBlockstore) PutMany(blocks []blocks.Block) error {
 	t, err := bs.datastore.Batch()
 	if err != nil {
 		return err
 	}
 	for _, b := range blocks {
-		k := dshelp.MultihashToDsKey(b.Cid().Hash())
-		exists, err := bs.datastore.Has(k)
-		if err == nil && exists {
-			continue
-		}
-
-		err = t.Put(k, b.RawData())
-		if err != nil {
+		if err = t.Put(
+			dshelp.MultihashToDsKey(b.Cid().Hash()),
+			b.RawData(),
+		); err != nil {
 			return err
 		}
 	}
 	return t.Commit()
 }
 
-func (bs *blockstore) Has(k cid.Cid) (bool, error) {
+// Has checks to see if we have the block in our blockstore
+func (bs *ExperimentalBlockstore) Has(k cid.Cid) (bool, error) {
 	return bs.datastore.Has(dshelp.MultihashToDsKey(k.Hash()))
 }
 
-func (bs *blockstore) GetSize(k cid.Cid) (int, error) {
+// GetSize returns the size of the associated block
+func (bs *ExperimentalBlockstore) GetSize(k cid.Cid) (int, error) {
 	size, err := bs.datastore.GetSize(dshelp.MultihashToDsKey(k.Hash()))
 	if err == ds.ErrNotFound {
 		return -1, ErrNotFound
@@ -129,7 +103,8 @@ func (bs *blockstore) GetSize(k cid.Cid) (int, error) {
 	return size, err
 }
 
-func (bs *blockstore) DeleteBlock(k cid.Cid) error {
+// DeleteBlock removes the block from our blockstore
+func (bs *ExperimentalBlockstore) DeleteBlock(k cid.Cid) error {
 	return bs.datastore.Delete(dshelp.MultihashToDsKey(k.Hash()))
 }
 
@@ -137,7 +112,7 @@ func (bs *blockstore) DeleteBlock(k cid.Cid) error {
 // this is very simplistic, in the future, take dsq.Query as a param?
 //
 // AllKeysChan respects context.
-func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
+func (bs *ExperimentalBlockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 
 	// KeysOnly, because that would be _a lot_ of data.
 	q := dsq.Query{KeysOnly: true}

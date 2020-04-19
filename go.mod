@@ -1,6 +1,7 @@
 module github.com/RTradeLtd/go-ipfs-blockstore/v2
 
 require (
+	github.com/RTradeLtd/go-datastores v1.0.0-rc1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/ipfs/bbloom v0.0.4
 	github.com/ipfs/go-block-format v0.0.2
