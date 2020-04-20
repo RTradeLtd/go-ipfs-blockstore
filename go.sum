@@ -6,6 +6,8 @@ github.com/Kubuxu/go-os-helper v0.0.1/go.mod h1:N8B+I7vPCT80IcP58r50u4+gEEcsZETF
 github.com/RTradeLtd/TxPB/v3 v3.2.0/go.mod h1:j0oH2gFOQ2pbOOXka7KMuri7PUMoiEtDWt0zUKSXe8I=
 github.com/RTradeLtd/TxPB/v3 v3.2.4-0.20200419235109-59639e2813da h1:0IJrGb/DJj/buGsAqeYp6YmwHyTaq5ylK9U5khldS/4=
 github.com/RTradeLtd/TxPB/v3 v3.2.4-0.20200419235109-59639e2813da/go.mod h1:i825/csWquH1UTNKgF9OZ175KSptuB2qqcBN+7pG2mU=
+github.com/RTradeLtd/TxPB/v3 v3.2.4-0.20200420035514-5f7f06ff568d h1:HMJIoZMi0infkLfsMEfy2Ut/da9VCEev6/EQj92w+Uo=
+github.com/RTradeLtd/TxPB/v3 v3.2.4-0.20200420035514-5f7f06ff568d/go.mod h1:i825/csWquH1UTNKgF9OZ175KSptuB2qqcBN+7pG2mU=
 github.com/RTradeLtd/entropy-mnemonics v0.0.0-20170316012907-7b01a644a636/go.mod h1:zpzHNRdCMCG9PM9QO5jVSldXCRMJ7lY42yJ5TEe//7M=
 github.com/RTradeLtd/go-libp2p-tls v0.2.2 h1:GhYeScb2CDCzTfxnGvnGmHbUy4N6fMj2fCekLm/a43E=
 github.com/RTradeLtd/go-libp2p-tls v0.2.2/go.mod h1:IRcUL004SnEu2eAA8amf7jxaimBeS9cKt9uq7jguzqs=

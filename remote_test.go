@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	xtestutils "github.com/RTradeLtd/TxPB/v3/go/testutils"
+	xtestutils "github.com/RTradeLtd/TxPB/v3/go/xtestutils"
 	sdkc "github.com/RTradeLtd/go-temporalx-sdk/client"
 	blocks "github.com/ipfs/go-block-format"
 	"go.uber.org/zap/zaptest"
