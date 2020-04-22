@@ -1,47 +1,14 @@
 # go-ipfs-blockstore
 
-[![](https://img.shields.io/badge/made%20by-Protocol%20Labs-blue.svg?style=flat-square)](http://ipn.io)
-[![](https://img.shields.io/badge/project-IPFS-blue.svg?style=flat-square)](http://ipfs.io/)
-[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat-square)](https://github.com/RichardLitt/standard-readme)
-[![GoDoc](https://godoc.org/github.com/ipfs/go-ipfs-blockstore?status.svg)](https://godoc.org/github.com/ipfs/go-ipfs-blockstore)
-[![Build Status](https://travis-ci.com/ipfs/go-ipfs-blockstore.svg?branch=master)](https://travis-ci.com/ipfs/go-ipfs-blockstore)
 
-> go-ipfs-blockstore implements a thin wrapper over a datastore, giving a clean interface for Getting and Putting block objects.
+`go-ipfs-blockstore` is a fork of `ipfs/go-ipfs-blockstore` tailored to the needs of TemporalX. List of changes:
 
-## Lead Maintainer
+* Alias interfaces to upstream
+* Remove of `GCBlockstore` implementation, but left the alias for compatability
+* Implement logging with `zap` instead of `ipfs/go-log`
+* Use prometheus for metrics directly instead of `go-ipfs-metrics`
+* Adds an interface type for our reference counted blockstore
 
-[Steven Allen](https://github.com/Stebalien)
+# License
 
-
-## Table of Contents
-
-- [Install](#install)
-- [Usage](#usage)
-- [Contribute](#contribute)
-- [License](#license)
-
-## Install
-
-`go-ipfs-blockstore` works like a regular Go module:
-
-```
-> go get github.com/ipfs/go-ipfs-blockstore
-```
-
-## Usage
-
-```
-import "github.com/ipfs/go-ipfs-blockstore"
-```
-
-Check the [GoDoc documentation](https://godoc.org/github.com/ipfs/go-ipfs-blockstore)
-
-## Contribute
-
-PRs accepted.
-
-Small note: If editing the README, please conform to the [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
-
-## License
-
-MIT © Protocol Labs, Inc.
+All previous code from upstream is licensed under MIT, while our new additions is licensed under AGPL-3.0; All AGPL-3.0 license code has a copyright header at the top of the file. For our actual license see `LICENSE` for upstream license see `LICENSE.orig`
