@@ -2,7 +2,6 @@ package blockstore
 
 import (
 	"context"
-	"errors"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -16,14 +15,14 @@ import (
 )
 
 // BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ds.NewKey("blocks")
+var BlockPrefix = ib.BlockPrefix
 
 // ErrHashMismatch is an error returned when the hash of a block
 // is different than expected.
-var ErrHashMismatch = errors.New("block in storage has different hash than requested")
+var ErrHashMismatch = ib.ErrHashMismatch
 
 // ErrNotFound is an error returned when a block is not found.
-var ErrNotFound = errors.New("blockstore: block not found")
+var ErrNotFound = ib.ErrNotFound
 
 // Blockstore aliases upstream blockstore interface
 type Blockstore = ib.Blockstore
