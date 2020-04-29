@@ -94,7 +94,11 @@ func (bs *blockstore) Put(block blocks.Block) error {
 	if err == nil && exists {
 		return nil // already stored.
 	}
-	return bs.datastore.Put(k, block.RawData())
+	err = bs.datastore.Put(k, block.RawData())
+	if err == nil {
+		blockCount.Inc()
+	}
+	return err
 }
 
 func (bs *blockstore) PutMany(blocks []blocks.Block) error {
@@ -114,7 +118,11 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 			return err
 		}
 	}
-	return t.Commit()
+	err = t.Commit()
+	if err == nil {
+		blockCount.Add(float64(len(blocks)))
+	}
+	return err
 }
 
 func (bs *blockstore) Has(k cid.Cid) (bool, error) {
@@ -130,7 +138,11 @@ func (bs *blockstore) GetSize(k cid.Cid) (int, error) {
 }
 
 func (bs *blockstore) DeleteBlock(k cid.Cid) error {
-	return bs.datastore.Delete(dshelp.MultihashToDsKey(k.Hash()))
+	err := bs.datastore.Delete(dshelp.MultihashToDsKey(k.Hash()))
+	if err == nil {
+		blockCount.Dec()
+	}
+	return err
 }
 
 // AllKeysChan runs a query for keys from the blockstore.
