@@ -160,9 +160,19 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 
 	output := make(chan cid.Cid, dsq.KeysOnlyBufSize)
 	go func() {
+		var (
+			count = 0
+			k     cid.Cid
+			bk    []byte
+			err   error
+		)
 		defer func() {
 			res.Close() // ensure exit (signals early exit, too)
 			close(output)
+			// only set the blockstore count if greater than 0 and no error
+			if count > 0 && err == nil {
+				blockCount.Set(float64(count))
+			}
 		}()
 
 		for {
@@ -171,12 +181,13 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 				return
 			}
 			if e.Error != nil {
+				err = e.Error
 				bs.logger.Error("AllKeysChan received error", zap.Error(err))
 				return
 			}
 
 			// need to convert to key.Key using key.KeyFromDsKey.
-			bk, err := dshelp.BinaryFromDsKey(ds.RawKey(e.Key))
+			bk, err = dshelp.BinaryFromDsKey(ds.RawKey(e.Key))
 			if err != nil {
 				bs.logger.Warn("error parsing key from binary", zap.Error(err))
 				continue
@@ -187,7 +198,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 			// as we have some tests which generate cidv0 objects
 			// that break this
 			// k := cid.NewCidV1(cid.Raw, bk)
-			k, err := cid.Cast(bk)
+			k, err = cid.Cast(bk)
 			if err != nil {
 				bs.logger.Warn("failed to cast cid", zap.Error(err))
 			}
@@ -195,7 +206,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 			case <-ctx.Done():
 				return
 			case output <- k:
-				blockCount.Inc()
+				count++
 			}
 		}
 	}()
