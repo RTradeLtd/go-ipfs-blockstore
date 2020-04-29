@@ -2,6 +2,7 @@ package blockstore
 
 import (
 	"context"
+	"time"
 
 	blocks "github.com/ipfs/go-block-format"
 	cid "github.com/ipfs/go-cid"
@@ -42,11 +43,26 @@ func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
 	dsb = dd
-	return &blockstore{
+	bs := &blockstore{
 		datastore: dsb,
 		logger:    logger.Named("blockstore"),
 		rehash:    uatomic.NewBool(false),
 	}
+	// set an initial count for the blockstore
+	go func() {
+		tempCtx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+		defer cancel()
+		ch, err := bs.AllKeysChan(tempCtx)
+		if err != nil {
+			logger.Error("failed to set initial blockstore count", zap.Error(err))
+		}
+		count := 0
+		for range ch {
+			count++
+		}
+		blockCount.Add(float64(count))
+	}()
+	return bs
 }
 
 type blockstore struct {
