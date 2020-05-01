@@ -34,7 +34,7 @@ func TestBlockstoreCount(t *testing.T) {
 		bs.DeleteBlock(blk.Cid())
 	}
 	if bs.GetTotalBlocks() != 50 {
-		t.Fatal("bad blockstoer count")
+		t.Fatal("bad blockstore count")
 	}
 }
 
