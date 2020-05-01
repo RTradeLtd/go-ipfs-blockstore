@@ -47,7 +47,7 @@ type MetricStore interface {
 
 // NewBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
-func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
+func NewBlockstore(logger *zap.Logger, d ds.Batching) MetricStore {
 	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
 	dsb = dd
