@@ -107,7 +107,6 @@ func (bs *blockstore) Put(block blocks.Block) error {
 	}
 	err = bs.datastore.Put(k, block.RawData())
 	if err == nil {
-		blockCount.Inc()
 		bs.count.Inc()
 	}
 	return err
@@ -118,6 +117,7 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	if err != nil {
 		return err
 	}
+	var count int64 = 0
 	for _, b := range blocks {
 		k := dshelp.MultihashToDsKey(b.Cid().Hash())
 		exists, err := bs.datastore.Has(k)
@@ -129,11 +129,13 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 		if err != nil {
 			return err
 		}
+		// make sure that we only increase count
+		// if we are getting a new block
+		count++
 	}
 	err = t.Commit()
 	if err == nil {
-		blockCount.Add(float64(len(blocks)))
-		bs.count.Add(int64(len(blocks)))
+		bs.count.Add(count)
 	}
 	return err
 }
@@ -153,7 +155,6 @@ func (bs *blockstore) GetSize(k cid.Cid) (int, error) {
 func (bs *blockstore) DeleteBlock(k cid.Cid) error {
 	err := bs.datastore.Delete(dshelp.MultihashToDsKey(k.Hash()))
 	if err == nil {
-		blockCount.Dec()
 		bs.count.Dec()
 	}
 	return err
@@ -185,7 +186,6 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 			close(output)
 			// only set the blockstore count if greater than 0 and no error
 			if count > 0 && err == nil {
-				blockCount.Set(float64(count))
 				bs.count.Store(int64(count))
 			}
 		}()
