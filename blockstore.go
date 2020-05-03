@@ -184,8 +184,10 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 		defer func() {
 			res.Close() // ensure exit (signals early exit, too)
 			close(output)
-			// only set the blockstore count if greater than 0 and no error
-			if count > 0 && err == nil {
+			// only set the blockstore count if no errors is found
+			// we will set to 0 if 0 is returned because that means
+			// we have that many blocks in our blockstore
+			if err == nil {
 				bs.count.Store(int64(count))
 			}
 		}()
