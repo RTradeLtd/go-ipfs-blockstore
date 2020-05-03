@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func testBloomCached(ctx context.Context, bs Blockstore) (*bloomcache, error) {
+func testBloomCached(ctx context.Context, bs MetricStore) (*bloomcache, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}

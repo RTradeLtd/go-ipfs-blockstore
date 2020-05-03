@@ -16,10 +16,10 @@ type cacheSize int
 // to short-cut many searches without query-ing the underlying datastore.
 type arccache struct {
 	arc        *lru.TwoQueueCache
-	blockstore Blockstore
+	blockstore MetricStore
 }
 
-func newARCCachedBS(ctx context.Context, bs Blockstore, lruSize int) (*arccache, error) {
+func newARCCachedBS(ctx context.Context, bs MetricStore, lruSize int) (*arccache, error) {
 	arc, err := lru.New2Q(lruSize)
 	if err != nil {
 		return nil, err
@@ -176,4 +176,9 @@ func (b *arccache) PinLock() Unlocker {
 
 func (b *arccache) GCRequested() bool {
 	return b.blockstore.(GCBlockstore).GCRequested()
+}
+
+// GetTotalBlocks returns the total number of stored blocks
+func (b *arccache) GetTotalBlocks() int64 {
+	return b.blockstore.GetTotalBlocks()
 }

@@ -13,7 +13,7 @@ import (
 // bloomCached returns a Blockstore that caches Has requests using a Bloom
 // filter. bloomSize is size of bloom filter in bytes. hashCount specifies the
 // number of hashing functions in the bloom filter (usually known as k).
-func bloomCached(ctx context.Context, bs Blockstore, bloomSize, hashCount int) (*bloomcache, error) {
+func bloomCached(ctx context.Context, bs MetricStore, bloomSize, hashCount int) (*bloomcache, error) {
 	bl, err := bloom.New(float64(bloomSize), float64(hashCount))
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ type bloomcache struct {
 	buildErr error
 
 	buildChan  chan struct{}
-	blockstore Blockstore
+	blockstore MetricStore
 }
 
 func (b *bloomcache) BloomActive() bool {
@@ -189,4 +189,9 @@ func (b *bloomcache) PinLock() Unlocker {
 
 func (b *bloomcache) GCRequested() bool {
 	return b.blockstore.(GCBlockstore).GCRequested()
+}
+
+// GetTotalBlocks returns the total number of stored blocks
+func (b *bloomcache) GetTotalBlocks() int64 {
+	return b.blockstore.GetTotalBlocks()
 }
