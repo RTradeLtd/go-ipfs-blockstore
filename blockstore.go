@@ -14,15 +14,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// BlockPrefix namespaces blockstore datastores
-var BlockPrefix = ib.BlockPrefix
+var (
+	_ MetricStore = (*blockstore)(nil)
+	// BlockPrefix namespaces blockstore datastores
+	BlockPrefix = ib.BlockPrefix
 
-// ErrHashMismatch is an error returned when the hash of a block
-// is different than expected.
-var ErrHashMismatch = ib.ErrHashMismatch
+	// ErrHashMismatch is an error returned when the hash of a block
+	// is different than expected.
+	ErrHashMismatch = ib.ErrHashMismatch
 
-// ErrNotFound is an error returned when a block is not found.
-var ErrNotFound = ib.ErrNotFound
+	// ErrNotFound is an error returned when a block is not found.
+	ErrNotFound = ib.ErrNotFound
+)
 
 // Blockstore aliases upstream blockstore interface
 type Blockstore = ib.Blockstore
@@ -36,9 +39,15 @@ type GCBlockstore = ib.GCBlockstore
 // Unlocker aliases upstream unlocker interface
 type Unlocker = ib.Unlocker
 
+// MetricStore is a blockstore type that exposes functions to retrieve statistics about the blockstore
+type MetricStore interface {
+	Blockstore
+	GetTotalBlocks() int64
+}
+
 // NewBlockstore returns a default Blockstore implementation
 // using the provided datastore.Batching backend.
-func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
+func NewBlockstore(logger *zap.Logger, d ds.Batching) MetricStore {
 	var dsb ds.Batching
 	dd := dsns.Wrap(d, BlockPrefix)
 	dsb = dd
@@ -46,6 +55,7 @@ func NewBlockstore(logger *zap.Logger, d ds.Batching) Blockstore {
 		datastore: dsb,
 		logger:    logger.Named("blockstore"),
 		rehash:    uatomic.NewBool(false),
+		count:     uatomic.NewInt64(0),
 	}
 }
 
@@ -53,6 +63,7 @@ type blockstore struct {
 	datastore ds.Batching
 	logger    *zap.Logger
 	rehash    *uatomic.Bool
+	count     *uatomic.Int64
 }
 
 func (bs *blockstore) HashOnRead(enabled bool) {
@@ -96,7 +107,7 @@ func (bs *blockstore) Put(block blocks.Block) error {
 	}
 	err = bs.datastore.Put(k, block.RawData())
 	if err == nil {
-		blockCount.Inc()
+		bs.count.Inc()
 	}
 	return err
 }
@@ -106,6 +117,7 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 	if err != nil {
 		return err
 	}
+	var count int64 = 0
 	for _, b := range blocks {
 		k := dshelp.MultihashToDsKey(b.Cid().Hash())
 		exists, err := bs.datastore.Has(k)
@@ -117,10 +129,13 @@ func (bs *blockstore) PutMany(blocks []blocks.Block) error {
 		if err != nil {
 			return err
 		}
+		// make sure that we only increase count
+		// if we are getting a new block
+		count++
 	}
 	err = t.Commit()
 	if err == nil {
-		blockCount.Add(float64(len(blocks)))
+		bs.count.Add(count)
 	}
 	return err
 }
@@ -140,7 +155,7 @@ func (bs *blockstore) GetSize(k cid.Cid) (int, error) {
 func (bs *blockstore) DeleteBlock(k cid.Cid) error {
 	err := bs.datastore.Delete(dshelp.MultihashToDsKey(k.Hash()))
 	if err == nil {
-		blockCount.Dec()
+		bs.count.Dec()
 	}
 	return err
 }
@@ -169,9 +184,11 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 		defer func() {
 			res.Close() // ensure exit (signals early exit, too)
 			close(output)
-			// only set the blockstore count if greater than 0 and no error
-			if count > 0 && err == nil {
-				blockCount.Set(float64(count))
+			// only set the blockstore count if no errors is found
+			// we will set to 0 if 0 is returned because that means
+			// we have that many blocks in our blockstore
+			if err == nil {
+				bs.count.Store(int64(count))
 			}
 		}()
 
@@ -212,4 +229,9 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	}()
 
 	return output, nil
+}
+
+// GetTotalBlocks returns the total number of stored blocks
+func (bs *blockstore) GetTotalBlocks() int64 {
+	return bs.count.Load()
 }

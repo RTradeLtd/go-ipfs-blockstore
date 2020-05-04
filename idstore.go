@@ -10,10 +10,10 @@ import (
 
 // idstore wraps a BlockStore to add support for identity hashes
 type idstore struct {
-	bs Blockstore
+	bs MetricStore
 }
 
-func NewIdStore(bs Blockstore) Blockstore {
+func NewIdStore(bs MetricStore) MetricStore {
 	return &idstore{bs}
 }
 
@@ -83,4 +83,9 @@ func (b *idstore) HashOnRead(enabled bool) {
 
 func (b *idstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	return b.bs.AllKeysChan(ctx)
+}
+
+// GetTotalBlocks returns the total number of stored blocks
+func (b *idstore) GetTotalBlocks() int64 {
+	return b.bs.GetTotalBlocks()
 }

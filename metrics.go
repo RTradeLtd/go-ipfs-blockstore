@@ -19,16 +19,9 @@ func init() {
 	prometheus.MustRegister(arcCacheRequests)
 	prometheus.MustRegister(bloomCacheHits)
 	prometheus.MustRegister(bloomCacheRequests)
-	prometheus.MustRegister(blockCount)
 }
 
 var (
-	blockCount = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "blockstore",
-		Subsystem: "blocks",
-		Name:      "count",
-		Help:      "tracks the number of blocks in the blockstore",
-	})
 	arcCacheHits = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "blockstore",
 		Subsystem: "arc_cache",

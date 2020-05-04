@@ -15,6 +15,29 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+func TestBlockstoreCount(t *testing.T) {
+	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
+	var blks = make([]blocks.Block, 100)
+	for i := 0; i < 100; i++ {
+		blks[i] = blocks.NewBlock([]byte(fmt.Sprint(i)))
+	}
+	if err := bs.PutMany(blks); err != nil {
+		t.Fatal(err)
+	}
+	if bs.GetTotalBlocks() != 100 {
+		t.Fatal("bad blockstore count")
+	}
+	for i, blk := range blks {
+		if i == 50 {
+			break
+		}
+		bs.DeleteBlock(blk.Cid())
+	}
+	if bs.GetTotalBlocks() != 50 {
+		t.Fatal("bad blockstore count")
+	}
+}
+
 func TestGetWhenKeyNotPresent(t *testing.T) {
 	bs := NewBlockstore(zaptest.NewLogger(t), ds_sync.MutexWrap(ds.NewMapDatastore()))
 	c := cid.NewCidV0(u.Hash([]byte("stuff")))
@@ -52,6 +75,9 @@ func TestPutThenGetBlock(t *testing.T) {
 	if !bytes.Equal(block.RawData(), blockFromBlockstore.RawData()) {
 		t.Fail()
 	}
+	if bs.GetTotalBlocks() != 1 {
+		t.Fatal("incorrect number of blocks")
+	}
 }
 
 func TestCidv0v1(t *testing.T) {
@@ -69,6 +95,9 @@ func TestCidv0v1(t *testing.T) {
 	}
 	if !bytes.Equal(block.RawData(), blockFromBlockstore.RawData()) {
 		t.Fail()
+	}
+	if bs.GetTotalBlocks() != 1 {
+		t.Fatal("incorrect number of blocks")
 	}
 }
 
@@ -103,6 +132,9 @@ func TestPutThenGetSizeBlock(t *testing.T) {
 	if blockSize, err := bs.GetSize(missingBlock.Cid()); blockSize != -1 || err == nil {
 		t.Fatal("getsize returned invalid result")
 	}
+	if bs.GetTotalBlocks() != 2 {
+		t.Fatal("incorrect number of blocks")
+	}
 }
 
 type countHasDS struct {
@@ -135,6 +167,9 @@ func TestPutUsesHas(t *testing.T) {
 	if ds.hasCount != 2 {
 		t.Errorf("Blockstore did not call Has before attempting Put, this breaks compatibility")
 	}
+	if bs.GetTotalBlocks() != 1 {
+		t.Fatal("incorrect number of blocks")
+	}
 }
 
 func TestHashOnRead(t *testing.T) {
@@ -162,9 +197,12 @@ func TestHashOnRead(t *testing.T) {
 	if b, err := bs.Get(bl2.Cid()); err != nil || b.String() != bl2.String() {
 		t.Fatal("got wrong blocks")
 	}
+	if bs.GetTotalBlocks() != 2 {
+		t.Fatal("incorrect number of blocks")
+	}
 }
 
-func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (Blockstore, []cid.Cid) {
+func newBlockStoreWithKeys(t *testing.T, d ds.Datastore, N int) (MetricStore, []cid.Cid) {
 	if d == nil {
 		d = ds.NewMapDatastore()
 	}
@@ -192,7 +230,9 @@ func collect(ch <-chan cid.Cid) []cid.Cid {
 
 func TestAllKeysSimple(t *testing.T) {
 	bs, keys := newBlockStoreWithKeys(t, nil, 100)
-
+	if bs.GetTotalBlocks() != 100 {
+		t.Fatal("incorrect number of blocks")
+	}
 	ctx := context.Background()
 	ch, err := bs.AllKeysChan(ctx)
 	if err != nil {
@@ -212,7 +252,9 @@ func TestAllKeysRespectsContext(t *testing.T) {
 
 	d := &queryTestDS{ds: ds.NewMapDatastore()}
 	bs, _ := newBlockStoreWithKeys(t, d, N)
-
+	if bs.GetTotalBlocks() != int64(N) {
+		t.Fatal("incorrect number of blocks")
+	}
 	started := make(chan struct{}, 1)
 	done := make(chan struct{}, 1)
 	errors := make(chan error, 100)

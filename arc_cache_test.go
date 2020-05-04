@@ -13,7 +13,7 @@ import (
 
 var exampleBlock = blocks.NewBlock([]byte("foo"))
 
-func testArcCached(ctx context.Context, bs Blockstore) (*arccache, error) {
+func testArcCached(ctx context.Context, bs MetricStore) (*arccache, error) {
 	if ctx == nil {
 		ctx = context.TODO()
 	}
@@ -27,7 +27,7 @@ func testArcCached(ctx context.Context, bs Blockstore) (*arccache, error) {
 	return nil, err
 }
 
-func createStores(t *testing.T) (*arccache, Blockstore, *callbackDatastore) {
+func createStores(t *testing.T) (*arccache, MetricStore, *callbackDatastore) {
 	cd := &callbackDatastore{f: func() {}, ds: ds.NewMapDatastore()}
 	bs := NewBlockstore(zaptest.NewLogger(t), syncds.MutexWrap(cd))
 	arc, err := testArcCached(context.TODO(), bs)
