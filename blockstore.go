@@ -177,7 +177,6 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 	go func() {
 		var (
 			count = 0
-			k     cid.Cid
 			bk    []byte
 			err   error
 		)
@@ -209,16 +208,7 @@ func (bs *blockstore) AllKeysChan(ctx context.Context) (<-chan cid.Cid, error) {
 				bs.logger.Warn("error parsing key from binary", zap.Error(err))
 				continue
 			}
-			// this is commented out from upstream
-			// unfortunately it seems like the assumption that
-			// this will work even for cidv0 objects is false
-			// as we have some tests which generate cidv0 objects
-			// that break this
-			// k := cid.NewCidV1(cid.Raw, bk)
-			k, err = cid.Cast(bk)
-			if err != nil {
-				bs.logger.Warn("failed to cast cid", zap.Error(err))
-			}
+			k := cid.NewCidV1(cid.Raw, bk)
 			select {
 			case <-ctx.Done():
 				return
